@@ -1,0 +1,56 @@
+<script type="text/javascript" src="https://code.jquery.com/jquery-1.7.1.min.js"></script>
+<script type="text/javascript">
+var intervalID = setInterval(update_values, 5000);
+
+    function update_values(){
+    fetch("/get_opportunities").then(response => response.json().then(
+    data => generate_table(data)));
+    }
+
+    function generate_table(data){
+        data = JSON.parse(data);
+        // EXTRACT VALUE FOR HTML HEADER
+        const header = Object.keys(data[0]);
+
+        // CREATE DYNAMIC TABLE.
+        const table = document.createElement("table");
+
+        // CREATE HTML TABLE HEADER ROW USING THE EXTRACTED HEADERS ABOVE.
+        let tr = table.insertRow(-1);                   // TABLE ROW.
+        for (let i = 0; i < header.length; i++) {
+            const th = document.createElement("th");      // TABLE HEADER.
+            th.innerHTML = header[i];
+            tr.appendChild(th);
+        }
+
+        // ADD JSON DATA TO THE TABLE AS ROWS.
+        for (let i = 0; i < data.length; i++) {
+
+            tr = table.insertRow(-1);
+
+            for (let j = 0; j < header.length; j++) {
+                let tabCell = tr.insertCell(-1);
+                tabCell.innerHTML = data[i][header[j]];
+            }
+        }
+
+        // FINALLY ADD THE NEWLY CREATED TABLE WITH JSON DATA TO A CONTAINER.
+        const divContainer = document.getElementById("showData");
+        divContainer.innerHTML = "";
+        divContainer.appendChild(table);
+    }
+</script>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Trading Opportunities</title>
+</head>
+<body onload="update_values();">
+<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='styles.css') }}" />
+
+<h1>Centralized Exchange Arbitrage Opportunities</h1>
+<div id="showData" class="center"</div>
+</body>
+</html>
