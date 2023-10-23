@@ -1,97 +1,93 @@
-import importlib.resources
+import importlib.resources as pkg_resources
 import itertools
 import json
-import os
-import time
 from datetime import datetime
-from multiprocessing import Queue, Process
+from multiprocessing import Process, Manager
 
 from cex_arb.entities.binance import Binance
 from cex_arb.entities.brasil_bitcoin import BrasilBitcoin
-from cex_arb.slack_bot import post_message_to_slack
 
-script_dir = os.path.dirname(__file__)
-
-with importlib.resources.open_text("cex_arb", "tokens.json") as json_file:
-    CONFIG_TOKENS = json.load(json_file)
+from cex_arb import utils
 
 
-class ArbSearcher:
-
+class ArbitrageOpportunityFinder:
     def __init__(self):
-        self.cex_dict = {"Binance": Binance(),
-                         "BrasilBitcoin": BrasilBitcoin()}
-        self.cex_permutations = self._get_all_cex_pairs()
-        self.token_brl_pairs = list(CONFIG_TOKENS["Tokens"].keys())
-        self.pairs = list(itertools.product(self.token_brl_pairs, self.cex_permutations))
-        self.opportunities_queue = Queue()
+        """
+        Initialize the ArbitrageOpportunityFinder with specific exchange entities and load token pairs.
+        """
+        self.exchange_entities = {
+            "Binance": Binance(),
+            "BrasilBitcoin": BrasilBitcoin()
+        }
+        self.token_pairs = self._load_token_pairs()
+        self.exchange_permutations = self._generate_exchange_permutations()
 
-    def _get_all_cex_pairs(self):
-        cex_list = list(self.cex_dict.keys())
-        cex_permutations = list(itertools.permutations(cex_list, 2))
-        return cex_permutations
+    @staticmethod
+    def _load_token_pairs():
+        """
+        Load trading pairs from a JSON configuration file.
 
-    def get_opportunities(self, BRL_to_trade=40000):
-        pairs_queue = Queue()
-        processes = []
-        opportunities = []
+        :return: A list of trading pairs (e.g., ['BTCUSD', 'ETHUSD']).
+        """
+        with pkg_resources.open_text(utils, 'tokens.json') as tokens_file:
+            tokens = json.load(tokens_file)
+        return list(tokens["Tokens"].keys())
 
-        for pair in self.pairs:
-            pairs_queue.put(pair)
-            time.sleep(0.15)
+    def _generate_exchange_permutations(self):
+        """
+        Generate all possible ordered combinations of exchanges (permutations).
 
-        while not pairs_queue.empty():
-            token_pair = pairs_queue.get()
-            searcher_process = Process(target=self.search_for_arb_opportunity, args=(token_pair, BRL_to_trade,))
-            searcher_process.start()
-            processes.append(searcher_process)
-            time.sleep(0.2)
+        :return: A list of tuples representing permutations of exchanges.
+        """
+        exchange_names = list(self.exchange_entities.keys())
+        return list(itertools.permutations(exchange_names, 2))
 
-        for process in processes:
-            process.join()
+    @staticmethod
+    def _calculate_profit(pair, BRL_to_trade, results, exchange_entities):
+        """
+        Calculate potential profit from arbitrage between two exchanges and add the opportunity to the results if profitable.
 
-        while not self.opportunities_queue.empty():
-            opportunities.append(self.opportunities_queue.get())
-            time.sleep(0.15)
-        return json.dumps(opportunities)
+        :param pair: A tuple containing the token pair and a tuple of exchange names (e.g., ('BTCUSD', ('Binance', 'BrasilBitcoin'))).
+        :param BRL_to_trade: The amount in BRL intended for trade.
+        :param results: A shared list between processes to store profitable opportunities.
+        :param exchange_entities: A dictionary containing initialized exchange entities.
+        """
+        token_pair, (buy_exchange_name, sell_exchange_name) = pair
+        buy_exchange = exchange_entities[buy_exchange_name]
+        sell_exchange = exchange_entities[sell_exchange_name]
 
-    def search_for_arb_opportunity(self, pair, BRL_to_trade):
-        token_pair, exchangeA_name, exchangeB_name = pair[0], pair[1][0], pair[1][1]
-        exchangeA, exchangeB = self.cex_dict[exchangeA_name], self.cex_dict[exchangeB_name]
-        avg_price_cexA = exchangeA.get_average_token_price(token_pair, BRL_to_trade, "asks")
-        avg_price_cexB = exchangeB.get_average_token_price(token_pair, BRL_to_trade, "bids")
-        profit = avg_price_cexB - avg_price_cexA
+        buy_price = buy_exchange.get_average_token_price(token_pair, BRL_to_trade, "asks")
+        sell_price = sell_exchange.get_average_token_price(token_pair, BRL_to_trade, "bids")
+
+        profit = sell_price - buy_price
         if profit < 0:
-            time = datetime.now().strftime("%H:%M:%S")
-            message = "Time: %s, Coin: %s, Exchange_Buy: %s, Exchange_Sell: %s, Profit (R$): %s" % (
-                time,
-                token_pair, exchangeA_name, exchangeB_name, profit)
-            print(message)
-            # self.opportunities_queue.put(message)
-            # post_message_to_slack(message)
+            opportunity = {
+                "time": datetime.now().strftime("%H:%M:%S"),
+                "coin": token_pair,
+                "exchange_buy": buy_exchange_name,
+                "exchange_sell": sell_exchange_name,
+                "profit": f'R${profit:.2f}'  # Formatting profit to 2 decimal places
+            }
+            results.append(opportunity)
 
+    def find_opportunities(self, BRL_to_trade=40000):
+        """
+        Find and return arbitrage opportunities.
 
-if __name__ == '__main__':
-    arb_searcher = ArbSearcher()
-    arb_searcher.get_opportunities(100)
-    # while True:
-    #     amount_to_trade = [2000]
-    #     queue = Queue()
-    #
-    #     for amount in amount_to_trade:
-    #         queue.put(amount)
-    #         time.sleep(0.01)
-    #         time.sleep(0.01)
-    #
-    #
-    #     while not queue.empty():
-    #         amount = queue.get()
-    #         searcher_process = Process(target=arb_searcher.get_opportunities, args=(amount,))
-    #         searcher_process.start()
-    #         processes.append(searcher_process)
-    #         time.sleep(0.01)
-    #
-    #     for process in processes:
-    #         process.join()
-    #         time.sleep(0.01)
-    #
+        :param BRL_to_trade: The amount in BRL that the trader intends to use (default is 40000).
+        :return: A JSON string representing a list of arbitrage opportunities.
+        """
+        with Manager() as manager:
+            opportunities = manager.list()
+            processes = []
+
+            for pair in itertools.product(self.token_pairs, self.exchange_permutations):
+                process = Process(target=self._calculate_profit, args=(pair, BRL_to_trade, opportunities, self.exchange_entities))
+                processes.append(process)
+                process.start()
+
+            for process in processes:
+                process.join()
+
+            return json.dumps(list(opportunities)) if opportunities else json.dumps([])
+

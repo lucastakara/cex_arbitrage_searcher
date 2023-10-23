@@ -46,11 +46,43 @@ class BrasilBitcoin:
             except:
                 return -1
     @staticmethod
-    def _BRL_to_token(symbol, BRL_to_trade):
+    def _request(url, max_retries=3):
+        """
+        Perform a request and handle exceptions gracefully. Retry up to max_retries if the request fails.
+        """
+        for attempt in range(max_retries):
+            try:
+                response = requests.get(url)
+                response.raise_for_status()  # Raises a HTTPError if the status is 4xx, 5xx
+                return response.json()
+            except requests.exceptions.HTTPError as e:
+                if response.status_code == 429:
+                    print("Rate limit reached. Waiting before retrying.")
+                    time.sleep(60)  # for example, wait for 60 seconds
+                else:
+                    print(f"HTTP error: {e}")
+            except requests.exceptions.RequestException as e:
+                print(f"Request failed: {e}")
+            except ValueError as e:  # Includes JSONDecodeError
+                print(f"Response is not JSON or no data: {e}")
+
+            # If we haven't returned by this point, we've caught an exception, so wait and try again
+            print(f"Attempt {attempt + 1} failed, retrying in 2 seconds...")
+            time.sleep(2)
+
+        # After all retries, return None to indicate failure
+        return None
+
+    def _BRL_to_token(self, symbol, BRL_to_trade):
         URL_PRICES = "https://brasilbitcoin.com.br/API/prices/%s" % symbol
-        last_symbol_BRL = float(requests.get(url=URL_PRICES).json()['last'])
-        symbol_amount = BRL_to_trade / last_symbol_BRL
-        return symbol_amount
+        response_data = self._request(URL_PRICES)
+        if response_data:
+            last_symbol_BRL = float(response_data.get('last', 0))  # Default to 0 if 'last' is not present
+            symbol_amount = BRL_to_trade / last_symbol_BRL
+            return symbol_amount
+        else:
+            print("All attempts to fetch data failed.")
+            return None
 
     @staticmethod
     def manipulate_order_book(data):
@@ -59,6 +91,4 @@ class BrasilBitcoin:
             new_data.append([order['preco'], order['quantidade']])
         return new_data
 
-
-
-
+# print(brasil_bitcoin.get_average_token_price("BTC", 40000, "asks"))

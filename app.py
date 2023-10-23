@@ -1,20 +1,49 @@
 from flask import Flask, render_template, jsonify
-from cex_arb.arb_searcher import ArbSearcher
+from flask_socketio import SocketIO, emit
+from threading import Lock
+import time
+from cex_arb.arb_searcher import ArbitrageOpportunityFinder
 
+# Setup Flask app and SocketIO
 app = Flask(__name__)
+socketio = SocketIO(app)
+thread = None
+thread_lock = Lock()
 
 
-@app.route("/get_opportunities", methods=['GET'])
-def get_opportunities_data():
-    arb_searcher = ArbSearcher()
-    opportunities = arb_searcher.get_opportunities(100)
-    return jsonify(opportunities)
+def background_thread():
+    """
+    Background thread that checks for new opportunities and emits data.
+    """
+    arb_searcher = ArbitrageOpportunityFinder()
+    while True:
+        # Assuming the get_opportunities method fetches new opportunities data
+        opportunities = arb_searcher.find_opportunities(1000)
+        print(opportunities)
+        if opportunities:
+            socketio.emit('newdata', {'data': opportunities})
+        # Sleep for some time before the next check
+        socketio.sleep(10)  # Sleep for 5 seconds (or any other desired interval)
 
 
-@app.route("/", methods=["GET"])
+@app.route('/')
 def index():
-    return render_template("opportunity_table.html")
+    """
+    Serve the index HTML page at the root URL.
+    """
+    return render_template('opportunity_table.html')  # Assuming your HTML file is named 'index.html'
 
 
-if __name__ == "__main__":
-    app.run(debug=True)
+@socketio.on('connect')
+def on_connect():
+    """
+    Handle client connection and start the background thread if not already running.
+    """
+    global thread
+    with thread_lock:
+        if thread is None:
+            thread = socketio.start_background_task(background_thread)
+
+
+if __name__ == '__main__':
+    socketio.run(app, debug=True, allow_unsafe_werkzeug=True)  # Not recommended for production
