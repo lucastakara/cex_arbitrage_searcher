@@ -4,3 +4,4 @@ venv/
 .DS_Store
 cex_arbitrage.egg-info
 .pytest_cache
+build
