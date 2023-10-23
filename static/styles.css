@@ -1,33 +1,90 @@
-tr:nth-child(even){
-background-color: #e5e5e5;
+/* Root and Variables */
+:root {
+  --primary-font: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  --header-font-size: 1.5rem;
+  --base-font-size: 1rem;
+  --alternate-row-color: #f2f2f2;
+  --border-color: #ddd; /* Light grey color for a softer border */
 }
 
-table, td {
-  border: 1px solid;
-  text-align: left
-    font-family: verdana;
-    font-size: 120%;
+/* Reset margins and padding for better control */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
-th {
-border: 1px solid;
-text-align: center;
-font-family: verdana;
-font-size: 120%;
-}
-
+/* Container styling */
 div.container {
-width:98%;
-margin:1%;
+  width: 90%; /* Reduced width for better readability on larger screens */
+  margin: 2% auto; /* Centered, with automatic margins on the sides */
+  overflow-x: auto; /* Allows scrolling on smaller screens */
 }
-table {
-text-align:center;
-margin-left:auto;
-margin-right:auto;
-width:100px;
-}
-tr,td {text-align:left;}
 
-h1{
-   text-align: center;
+/* Table styles */
+table {
+  width: 100%;
+  border-collapse: collapse; /* Modern tables don't have double borders */
+  font-size: var(--base-font-size);
+  font-family: var(--primary-font);
+  margin: 25px 0; /* More space around the table */
+}
+
+/* Table header styles */
+th {
+  background-color: #4caf50; /* A nice green */
+  color: white; /* White text for contrast */
+  text-align: left;
+  padding: 10px; /* More padding for a larger touch target */
+  font-size: var(--header-font-size);
+}
+
+/* Table row and data/cell styles */
+tr, td {
+  text-align: left;
+  padding: 12px; /* Larger padding for readability and touch */
+  border-bottom: 1px solid var(--border-color); /* Only bottom border for a cleaner look */
+}
+
+/* Alternate row color for better readability */
+tr:nth-child(even) {
+  background-color: var(--alternate-row-color);
+}
+
+/* Header styling */
+h1 {
+  text-align: center;
+  margin-bottom: 20px; /* Extra space below the header */
+  font-family: var(--primary-font);
+  font-size: 2.5rem; /* Larger font size for the header */
+  color: #333; /* Darker color for better readability */
+}
+
+/* Responsive table for mobile devices */
+@media screen and (max-width: 600px) {
+  table, tr, td {
+    display: block;
+    width: 100%;
+  }
+
+  tr {
+    margin-bottom: 15px;
+  }
+
+  /* Hide table headers on mobile */
+  thead {
+    display: none;
+  }
+
+  td {
+    text-align: center;
+    border-bottom: none; /* Remove border for a cleaner look on mobile */
+  }
+
+  /* Add a pseudo content for clarity on mobile view */
+  td:before {
+    content: attr(data-label);
+    float: left;
+    font-weight: bold;
+  }
 }
