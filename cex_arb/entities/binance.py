@@ -1,7 +1,5 @@
-import json
 import logging
 import time
-from unittest.mock import patch
 
 import requests
 
@@ -73,9 +71,8 @@ class Binance:
                 print(f"JSON decoding failed on attempt {attempt + 1}: {e}")
                 time.sleep(2)  # Wait before retrying
 
-        # If we've reached this point, all attempts have failed
         print("All request attempts failed.")
-        return None  # Or you might raise an exception, depending on your error handling strategy
+        return None
 
     def _get_order_book(self, symbol, limit=200):
         """
@@ -110,7 +107,6 @@ class Binance:
             # Log the error for debugging purposes
             logging.error(f"HTTP error occurred: {http_err}")
         except Exception as err:
-            # An unexpected error occurred
             logging.error(f"An error occurred: {err}")
         return -1
 
@@ -127,5 +123,3 @@ class Binance:
         return BRL_to_trade / last_symbol_BRL
 
 
-# binance = Binance()
-# print(binance.get_average_token_price("BTCBRL", 40000, "bids"))

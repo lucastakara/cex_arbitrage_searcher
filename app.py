@@ -1,7 +1,6 @@
-from flask import Flask, render_template, jsonify
-from flask_socketio import SocketIO, emit
+from flask import Flask, render_template
+from flask_socketio import SocketIO
 from threading import Lock
-import time
 from cex_arb.arb_searcher import ArbitrageOpportunityFinder
 
 # Setup Flask app and SocketIO
@@ -23,7 +22,7 @@ def background_thread():
         if opportunities:
             socketio.emit('newdata', {'data': opportunities})
         # Sleep for some time before the next check
-        socketio.sleep(10)  # Sleep for 5 seconds (or any other desired interval)
+        socketio.sleep(10)
 
 
 @app.route('/')
@@ -31,7 +30,7 @@ def index():
     """
     Serve the index HTML page at the root URL.
     """
-    return render_template('opportunity_table.html')  # Assuming your HTML file is named 'index.html'
+    return render_template('opportunity_table.html')
 
 
 @socketio.on('connect')
@@ -43,10 +42,3 @@ def on_connect():
     with thread_lock:
         if thread is None:
             thread = socketio.start_background_task(background_thread)
-
-
-# if __name__ == '__main__':
-#     if __name__ == "__main__":
-#         # '0.0.0.0' makes the server available externally
-#         socketio.run(app, host='0.0.0.0', port=5000, debug=True,
-#                      allow_unsafe_werkzeug=True)  # Not recommended for production

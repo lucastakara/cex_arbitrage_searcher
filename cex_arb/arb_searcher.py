@@ -60,6 +60,7 @@ class ArbitrageOpportunityFinder:
         sell_price = sell_exchange.get_average_token_price(token_pair, BRL_to_trade, "bids")
 
         profit = sell_price - buy_price
+        ### NEGATIVE PROFIT FOR TESTING PURPOSES.
         if profit < 0:
             opportunity = {
                 "time": datetime.now().strftime("%H:%M:%S"),
@@ -82,7 +83,8 @@ class ArbitrageOpportunityFinder:
             processes = []
 
             for pair in itertools.product(self.token_pairs, self.exchange_permutations):
-                process = Process(target=self._calculate_profit, args=(pair, BRL_to_trade, opportunities, self.exchange_entities))
+                process = Process(target=self._calculate_profit,
+                                  args=(pair, BRL_to_trade, opportunities, self.exchange_entities))
                 processes.append(process)
                 process.start()
 
@@ -90,4 +92,3 @@ class ArbitrageOpportunityFinder:
                 process.join()
 
             return json.dumps(list(opportunities)) if opportunities else json.dumps([])
-
