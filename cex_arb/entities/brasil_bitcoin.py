@@ -91,4 +91,3 @@ class BrasilBitcoin:
             new_data.append([order['preco'], order['quantidade']])
         return new_data
 
-# print(brasil_bitcoin.get_average_token_price("BTC", 40000, "asks"))
