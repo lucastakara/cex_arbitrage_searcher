@@ -45,5 +45,8 @@ def on_connect():
             thread = socketio.start_background_task(background_thread)
 
 
-if __name__ == '__main__':
-    socketio.run(app, debug=True, allow_unsafe_werkzeug=True)  # Not recommended for production
+# if __name__ == '__main__':
+#     if __name__ == "__main__":
+#         # '0.0.0.0' makes the server available externally
+#         socketio.run(app, host='0.0.0.0', port=5000, debug=True,
+#                      allow_unsafe_werkzeug=True)  # Not recommended for production
