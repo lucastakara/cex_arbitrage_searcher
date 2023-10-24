@@ -28,7 +28,7 @@ Replace the URL above with the URL of your repository. Navigate to the cloned di
     cd cex_arbitrage
 ``` 
 
-1. **Build the Docker image**
+2. **Build the Docker image**
 
 Build your Docker image using the following command. Be sure to replace your-username with your Docker Hub username 
 and cex_arbitrage with your preferred image name.
@@ -37,7 +37,7 @@ docker build -t cex_arbitrage .
 ```
 This command reads the Dockerfile in the current directory and builds a Docker image based on its instructions.
 
-2. **Run the Docker container**
+3. **Run the Docker container**
 
 Once the image has been built, run it using the following command:
 ```bash
